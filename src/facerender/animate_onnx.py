@@ -32,7 +32,7 @@ except:
 
 class AnimateFromCoeff():
 
-    def __init__(self, sadtalker_path, device):
+    def __init__(self, sadtalker_path, device="cpu"):
 
         with open(sadtalker_path['facerender_yaml']) as f:
             config = yaml.safe_load(f)

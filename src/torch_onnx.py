@@ -24,7 +24,6 @@ parser.add_argument('--dst_model_path', type=str, default=None, help='dst model 
 parser.add_argument('--img_size', type=int, default=None, help='img size')
 args = parser.parse_args()
     
-#device = torch.device('cuda')
 model_path = args.src_model_path
 onnx_model_path = args.dst_model_path
 img_size = args.img_size

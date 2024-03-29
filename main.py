@@ -2,6 +2,14 @@ from fastapi import FastAPI , status , HTTPException
 from pydantic import BaseModel
 from loguru import logger
 
+import requests
+import json
+import os, sys
+import base64
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from time import strftime
 from time import time
 from src.utils.preprocess import CropAndExtract
@@ -11,32 +19,29 @@ from src.generate_batch import get_data
 from src.generate_facerender_batch import get_facerender_data
 from src.utils.init_path import init_path
 
-import requests
-import json
-import os, sys
-import base64
-import os
+
+
+compute_type = "cpu"
 
 tts_service = os.getenv("TTS_SERVER")
 pic_path ="./sadtalker_default.jpeg"
 facerender_batch_size = 10
 sadtalker_paths = init_path("./checkpoints", os.path.join("/home/SadTalker", 'src/config'), "256", False, "full")
 
-preprocess_model = CropAndExtract(sadtalker_paths, "cuda")
-audio_to_coeff = Audio2Coeff(sadtalker_paths, "cuda")
-animate_from_coeff = AnimateFromCoeff(sadtalker_paths, "cuda")
+preprocess_model = CropAndExtract(sadtalker_paths, compute_type)
+audio_to_coeff = Audio2Coeff(sadtalker_paths, compute_type)
+animate_from_coeff = AnimateFromCoeff(sadtalker_paths, compute_type)
 
 app = FastAPI()
 
 class Words(BaseModel):
     words: str
 
-
 @app.post("/pipeline")
 async def predict_image(items:Words):
     save_dir = os.path.join("/home/SadTalker/results", strftime("%Y_%m_%d_%H.%M.%S"))
     """
-    从语音服务器获取语音内容
+    Get voice content from server
     """
     try:
         tts_json = json.dumps({"text": items.words,"model_id": "zhisha"})
@@ -63,7 +68,7 @@ async def predict_image(items:Words):
     first_coeff_path, crop_pic_path, crop_info =  preprocess_model.generate(pic_path, first_frame_dir, "full", source_image_flag=True)
     ref_eyeblink_coeff_path=None
     ref_pose_coeff_path=None
-    batch = get_data(first_coeff_path, audio_path, "cuda", ref_eyeblink_coeff_path, still=True)
+    batch = get_data(first_coeff_path, audio_path, compute_type, ref_eyeblink_coeff_path, still=True)
     coeff_path = audio_to_coeff.generate(batch, save_dir, 0, ref_pose_coeff_path)
 
     data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path, 
@@ -80,7 +85,10 @@ async def predict_image(items:Words):
     return response
     
     
-        
+@app.get("/test")
+async def test_route():
+    return {"message": "Hello world"}
+
 @app.get("/health")
 async def health_check():
     try:
